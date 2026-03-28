@@ -63,6 +63,7 @@ class DWIN_LCD{
 
     private:
     HardwareSerial& _serial;
+    uint8_t _response[30];
 };
 
 

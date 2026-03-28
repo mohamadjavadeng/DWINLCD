@@ -27,20 +27,17 @@ bool DWIN_LCD::isConnected(void){
             return false;
         }
     }
-    uint8_t *response = new uint8_t[9];
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
-    if(response[0] != 0x5A)result = false;
-    else if(response[1] != 0xA5)result = false;
-    else if(response[2] != 0x06)result = false;
-    else if(response[3] != 0x83)result = false;
-    else if(response[4] != 0x00)result = false;
-    else if(response[5] != 0x31)result = false;
+    if(_response[0] != 0x5A)result = false;
+    else if(_response[1] != 0xA5)result = false;
+    else if(_response[2] != 0x06)result = false;
+    else if(_response[3] != 0x83)result = false;
+    else if(_response[4] != 0x00)result = false;
+    else if(_response[5] != 0x31)result = false;
     else result = true;
-    
-    delete[] response;
-
+    memset(_response, 0, sizeof(_response));
     return result;
 }
 
@@ -49,26 +46,25 @@ this function automatically goes to the next page defined in the LCD
 */
 void DWIN_LCD::nextPage(){
     byte currentPage[] = {0x5A, 0xA5, 0x04, 0x83, 0x00, 0x14, 0x01};
-    uint8_t *response = new uint8_t[9]; 
     byte page1, page2;
     uint8_t index = 0;
     _serial.write(currentPage, sizeof(currentPage));
     while(_serial.available() == 0) delay(50);
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
-    if(response[8] == 0xFF){
-        ++response[7];
-        response[8] = 0x00; 
+    if(_response[8] == 0xFF){
+        ++_response[7];
+        _response[8] = 0x00; 
     }
     else{
-       ++response[8]; 
+       ++_response[8]; 
     }
-    page1 = (byte)response[8];
-    page2 = (byte)response[7];
+    page1 = (byte)_response[8];
+    page2 = (byte)_response[7];
     byte nextpage[] = {0x5A, 0xA5, 0x07, 0x82, 0x00, 0x84, 0x5A, 0x01, page2, page1};
     _serial.write(nextpage, sizeof(nextpage));
-    delete[] response;
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
@@ -76,26 +72,25 @@ this function automatically goes to the previous page defined in the LCD
 */
 void DWIN_LCD::previousPage(){
     byte currentPage[] = {0x5A, 0xA5, 0x04, 0x83, 0x00, 0x14, 0x01};
-    uint8_t *response = new uint8_t[9];
     uint8_t index = 0;
     byte page1, page2;
     _serial.write(currentPage, sizeof(currentPage));
     while(_serial.available() == 0) delay(50);
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
-    if(response[8] == 0x00){
-        --response[7];
-        response[8] = 0xFF; 
+    if(_response[8] == 0x00){
+        --_response[7];
+        _response[8] = 0xFF; 
     }
     else{
-       --response[8]; 
+       --_response[8]; 
     }
-    page1 = (byte)response[8];
-    page2 = (byte)response[7];
+    page1 = (byte)_response[8];
+    page2 = (byte)_response[7];
     byte previouspage[] = {0x5A, 0xA5, 0x07, 0x82, 0x00, 0x84, 0x5A, 0x01, page2, page1};
     _serial.write(previouspage, sizeof(previouspage));
-    delete[] response;
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
@@ -178,17 +173,16 @@ void DWIN_LCD::readReg(uint16_t registeraddress, byte Nregisters, uint8_t* data)
     uint8_t highByte = (registeraddress >> 8) & 0xFF; // Extract high byte
     uint8_t lowByte = registeraddress & 0xFF;
     uint8_t command[] = {0x5A, 0xA5, 0x04, 0x83, highByte, lowByte, Nregisters};
-    uint8_t* response = new uint8_t[2 * Nregisters + 7];
     int index = 0;
     _serial.write(command, sizeof(command));
     while(_serial.available() == 0) delay(50);
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
     for(int i = 0; i < 2 * Nregisters; i++){
-        data[i] = response[i + 7];
+        data[i] = _response[i + 7];
     }
-    delete[] response;
+    memset(_response, 0, sizeof(_response));
 
 }
 
@@ -199,16 +193,15 @@ uint16_t DWIN_LCD::readSingleReg(const uint16_t registeraddress){
     uint8_t highByte = (registeraddress >> 8) & 0xFF; // Extract high byte
     uint8_t lowByte = registeraddress & 0xFF;
     uint8_t command[] = {0x5A, 0xA5, 0x04, 0x83, highByte, lowByte, 0x01};
-    uint8_t *response = new uint8_t[9]; 
     _serial.write(command, sizeof(command));
     int index = 0;
     while(_serial.available() == 0) delay(50);
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
-    uint16_t highRes = response[7];
-    uint16_t result = (highRes << 8) + response[8];
-    delete[] response;
+    uint16_t highRes = _response[7];
+    uint16_t result = (highRes << 8) + _response[8];
+    memset(_response, 0, sizeof(_response));
     return result;
 }
 
@@ -218,18 +211,17 @@ for reading the status of a bit icon you can use the following function
 bool DWIN_LCD::readSingleBit(const uint16_t registeraddress, const uint16_t Bitnumber){
     uint8_t highByte = (registeraddress >> 8) & 0xFF; // Extract high byte
     uint8_t lowByte = registeraddress & 0xFF;
-    uint8_t command[] = {0x5A, 0xA5, 0x04, 0x83, highByte, lowByte, 0x01};
-    uint8_t *response = new uint8_t[9]; 
+    uint8_t command[] = {0x5A, 0xA5, 0x04, 0x83, highByte, lowByte, 0x01}; 
     _serial.write(command, sizeof(command));
     int index = 0;
     while(_serial.available() == 0) delay(50);
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
-    uint16_t highRes = response[7];
-    uint16_t result = (highRes << 8) + response[8];
+    uint16_t highRes = _response[7];
+    uint16_t result = (highRes << 8) + _response[8];
     uint16_t bitIndex = (1 << Bitnumber) & result;
-    delete[] response;
+    memset(_response, 0, sizeof(_response));
     if(bitIndex != 0) return true;
     return false;
 }
@@ -240,21 +232,20 @@ this function will read the internal RTC and store it in the variable pointed
 */
 void DWIN_LCD::readRTC(void){
     byte command[] = {0x5A, 0xA5, 0x04, 0x83, 0x00, 0x10, 0x04};
-    uint8_t* response = new uint8_t[15];
     int index = 0;
     _serial.write(command, sizeof(command));
     while(_serial.available() == 0) delay(50);
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
-    DWIN_LCD::year = response[7];
-    DWIN_LCD::month = response[8];
-    DWIN_LCD::day = response[9];
-    DWIN_LCD::weekday = response[10];
-    DWIN_LCD::hour = response[11];
-    DWIN_LCD::minute = response[12];
-    DWIN_LCD::second = response[13];
-    delete[] response;
+    DWIN_LCD::year = _response[7];
+    DWIN_LCD::month = _response[8];
+    DWIN_LCD::day = _response[9];
+    DWIN_LCD::weekday = _response[10];
+    DWIN_LCD::hour = _response[11];
+    DWIN_LCD::minute = _response[12];
+    DWIN_LCD::second = _response[13];
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
@@ -270,16 +261,15 @@ read the backlight of LCD
 */
 void DWIN_LCD::backlight(void){
     uint8_t command[] = {0x5A, 0xA5, 0x04, 0x83, 0x00, 0x31, 0x01};
-    uint8_t *response = new uint8_t[9]; 
     _serial.write(command, sizeof(command));
     int index = 0;
     while(_serial.available() == 0) delay(50);
     while(_serial.available() != 0){
-        response[index++] = _serial.read();
+        _response[index++] = _serial.read();
     }
-    DWIN_LCD::backlightValue = (uint8_t)response[7];
-    DWIN_LCD::backlightCurrent = (uint8_t)response[8];
-    delete[] response;
+    DWIN_LCD::backlightValue = (uint8_t)_response[7];
+    DWIN_LCD::backlightCurrent = (uint8_t)_response[8];
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
