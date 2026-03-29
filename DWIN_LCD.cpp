@@ -22,7 +22,7 @@ bool DWIN_LCD::isConnected(void){
     uint8_t timeout = millis();
     _serial.write(command, sizeof(command));
     while(_serial.available() == 0) {
-        delay(50);
+        delay(10);
         if(millis() - timeout > 300){
             return false;
         }
@@ -49,7 +49,7 @@ void DWIN_LCD::nextPage(){
     byte page1, page2;
     uint8_t index = 0;
     _serial.write(currentPage, sizeof(currentPage));
-    while(_serial.available() == 0) delay(50);
+    while(_serial.available() == 0) delay(10);
     while(_serial.available() != 0){
         _response[index++] = _serial.read();
     }
@@ -64,6 +64,11 @@ void DWIN_LCD::nextPage(){
     page2 = (byte)_response[7];
     byte nextpage[] = {0x5A, 0xA5, 0x07, 0x82, 0x00, 0x84, 0x5A, 0x01, page2, page1};
     _serial.write(nextpage, sizeof(nextpage));
+    index = 0;
+    while(_serial.available() == 0) delay(10);
+    while(_serial.available() != 0){
+        _response[index++] = _serial.read();
+    }
     memset(_response, 0, sizeof(_response));
 }
 
@@ -90,6 +95,11 @@ void DWIN_LCD::previousPage(){
     page2 = (byte)_response[7];
     byte previouspage[] = {0x5A, 0xA5, 0x07, 0x82, 0x00, 0x84, 0x5A, 0x01, page2, page1};
     _serial.write(previouspage, sizeof(previouspage));
+    index = 0;
+    while(_serial.available() == 0) delay(10);
+    while(_serial.available() != 0){
+        _response[index++] = _serial.read();
+    }
     memset(_response, 0, sizeof(_response));
 }
 
@@ -99,6 +109,12 @@ this function is called to choose a custom page
 void DWIN_LCD::gotoPage(const byte page){
     byte command[] = {0x5A, 0xA5, 0x07, 0x82, 0x00, 0x84, 0x5A, 0x01, 0x00, page};
     _serial.write(command, sizeof(command));
+    int index = 0;
+    while(_serial.available() == 0) delay(10);
+    while(_serial.available() != 0){
+        _response[index++] = _serial.read();
+    }
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
@@ -115,6 +131,12 @@ void DWIN_LCD::writeSingleReg(uint16_t registeraddress, const uint16_t value){
     uint8_t lowValue = value & 0xFF;
     uint8_t command[] = {0x5A, 0xA5, 0x05, 0x82, highByte, lowByte, highValue, lowValue};
     _serial.write(command, sizeof(command));
+    int index = 0;
+    while(_serial.available() == 0) delay(10);
+    while(_serial.available() != 0){
+        _response[index++] = _serial.read();
+    }
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
@@ -135,6 +157,12 @@ void DWIN_LCD::writeData(uint16_t registeraddress, const uint8_t data[], const u
     }
     _serial.write(newData, length + 6);
     delete[] newData;
+    int index = 0;
+    while(_serial.available() == 0) delay(10);
+    while(_serial.available() != 0){
+        _response[index++] = _serial.read();
+    }
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
@@ -254,6 +282,12 @@ internal RTC will be set using this function
 void DWIN_LCD::writeRTC(uint8_t dayrtc, uint8_t monthrtc, uint8_t yearrtc, uint8_t hourrtc, uint8_t minutertc, uint8_t secondrtc, weekdays weekdayrtc){
     byte command[] = {0x5A, 0xA5, 0x0B, 0x82, 0x00, 0x10, yearrtc, monthrtc, dayrtc, weekdayrtc, hourrtc, minutertc, secondrtc, 0x00};
     _serial.write(command, sizeof(command));
+    int index = 0;
+    while(_serial.available() == 0) delay(50);
+    while(_serial.available() != 0){
+        _response[index++] = _serial.read();
+    }
+    memset(_response, 0, sizeof(_response));
 }
 
 /*
@@ -291,4 +325,10 @@ void DWIN_LCD::buzzer(buzzer_duration buzzer){
     }
     byte command[] = {0x5A, 0xA5, 0x05, 0x82, 0x00, 0xA0, 0x00, duration};
     _serial.write(command, sizeof(command));
+    int index = 0;
+    while(_serial.available() == 0) delay(10);
+    while(_serial.available() != 0){
+        _response[index++] = _serial.read();
+    }
+    memset(_response, 0, sizeof(_response));
 }
