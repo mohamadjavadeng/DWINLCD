@@ -145,7 +145,7 @@ this function is called to write a text/array data on a register
 void DWIN_LCD::writeData(uint16_t registeraddress, const uint8_t data[], const uint8_t length){
     uint8_t highByte = (registeraddress >> 8) & 0xFF; // Extract high byte
     uint8_t lowByte = registeraddress & 0xFF;
-    uint8_t* newData = new uint8_t[length + 6];
+    uint8_t newDara[64];
     newData[0] = 0x5A;
     newData[1] = 0xA5;
     newData[2] = length + 3;
@@ -331,4 +331,42 @@ void DWIN_LCD::buzzer(buzzer_duration buzzer){
         _response[index++] = _serial.read();
     }
     memset(_response, 0, sizeof(_response));
+}
+
+bool DWIN_LCD::_readResponse(void){
+    static uint8_t index = 0;
+  static uint8_t expectedLength = 0;
+
+  while (_serial.available()) {
+    uint8_t b = _serial.read();
+
+    // Step 1: find header
+    if (index == 0 && b != 0x5A) continue;
+    if (index == 1 && b != 0xA5) {
+      index = 0;
+      continue;
+    }
+
+    _response[index++] = b;
+
+    // Step 2: get length
+    if (index == 3) {
+      expectedLength = _response[2] + 3;
+    }
+
+    // Step 3: full frame received
+    if (expectedLength && index >= expectedLength) {
+      // reset for next frame
+      index = 0;
+      expectedLength = 0;
+      return true;
+    }
+
+    // safety reset
+    if (index >= sizeof(_response)) {
+      index = 0;
+      expectedLength = 0;
+    }
+  }
+  return false;
 }
