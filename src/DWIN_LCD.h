@@ -25,8 +25,6 @@ typedef enum {
     SATURDAY
 }weekdays;
 
-
-
 class DWIN_LCD{
     public:
     DWIN_LCD(HardwareSerial& serial);
@@ -51,19 +49,18 @@ class DWIN_LCD{
     void backlight(void);
     void buzzer(buzzer_duration buzzer= BUZZ_1SEC);
 
-    /*void startAnimation(uint16_t VP);
-    void stopAnimation(uint16_t VP);*/
-
-
     /*
-    touch panel sound on/off
-    set backlight
-    rotating background
+    Call in loop() to handle incoming frames from DWIN (touch events, etc.)
+    Returns true when a complete valid frame is received.
     */
+    bool readResponse(void);
 
     private:
     HardwareSerial& _serial;
-    uint8_t _response[30];
+    uint8_t _response[32];
+    uint8_t _readIndex;
+    uint8_t _expectedLength;
+    void _resetParser(void);
     bool _readResponse(void);
 };
 
